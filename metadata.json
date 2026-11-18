@@ -1,0 +1,6 @@
+{
+  "name": "Loupe Atelier",
+  "description": "AI luxury macro pre-screening studio calculating authenticity probability scores from sequential macro photography.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
