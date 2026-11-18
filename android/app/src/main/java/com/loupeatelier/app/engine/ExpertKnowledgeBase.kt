@@ -9,7 +9,7 @@ data class CategoryProtocol(
     val defaultItemName: String,
     val markers: List<MarkerSpec>,
     val humanChecks: List<String>,
-    val isCustomCached: Boolean = false
+    val isAdaptiveCustom: Boolean = false
 )
 
 data class HouseReferenceNote(
@@ -24,9 +24,9 @@ object ExpertKnowledgeBase {
     val houseReferences: List<HouseReferenceNote> = listOf(
         HouseReferenceNote(
             houseName = "Hermès",
-            keywords = listOf("hermes", "hermès", "birkin", "kelly", "constance", "evelyne", "picotin", "lindy"),
-            signatureMacroCues = "Hand saddle-stitched 18°–20° waxed lin-thread slant; hammered touret pearling rivets; crisp sans-serif heat stamp without foil halo.",
-            eraAndSerialTip = "Blindstamp year letter placement shifted inside left gusset/interior upper panel post-2015 (T–W/K/B/etc.); verify artisan mark crispness."
+            keywords = listOf("hermes", "hermès", "birkin", "kelly", "constance", "evelyne", "picotin", "lindy", "carré", "carre", "h belt"),
+            signatureMacroCues = "Hand saddle-stitched 18°–20° waxed lin-thread slant; hammered touret pearling rivets; crisp sans-serif heat stamp without foil halo; hand-rolled inward roulotté edges on silk.",
+            eraAndSerialTip = "Blindstamp year letter shifted inside left gusset/upper interior panel post-2015 (T–W/K/B); silk care tags use fine French serif typography."
         ),
         HouseReferenceNote(
             houseName = "Chanel",
@@ -37,7 +37,7 @@ object ExpertKnowledgeBase {
         HouseReferenceNote(
             houseName = "Louis Vuitton",
             keywords = listOf("louis vuitton", "lv", "neverfull", "speedy", "keepall", "pochette", "alma", "monogram", "damier"),
-            signatureMacroCues = "Coated canvas matte texture with crisp olive/gold ochre LV motifs; mustard waxed cotton thread with clean tear-drop heat-stamp O's.",
+            signatureMacroCues = "Coated canvas matte grain with crisp olive/gold ochre LV motifs; mustard waxed thread with clean tear-drop heat-stamp O's.",
             eraAndSerialTip = "Pre-March 2021 uses 2-letter factory code + 4-digit week/year date code; March 2021+ embedded NFC microchip with no printed date code."
         ),
         HouseReferenceNote(
@@ -45,6 +45,18 @@ object ExpertKnowledgeBase {
             keywords = listOf("dior", "lady dior", "saddle", "book tote", "cannage"),
             signatureMacroCues = "Tight cannage quilt geometry; D.I.O.R. charm eyelets with smooth chamfered collars; crisp serif MADE IN ITALY embossing.",
             eraAndSerialTip = "Leather tag heat-stamped date code format: 2 digits – 2 letters – 4 digits (e.g., 01-MA-0219)."
+        ),
+        HouseReferenceNote(
+            houseName = "Gucci",
+            keywords = listOf("gucci", "marmont", "jackie", "dionysus", "horsebit", "ophidia", "supreme"),
+            signatureMacroCues = "Tight double-G web/canvas symmetry; crisp Italian leather serif '® GUCCI made in italy' heat-stamp with distinct curled serif R.",
+            eraAndSerialTip = "Underside of leather tag bears dual-row 6-digit + 4/6-digit model/supplier serial in tall serif numerals; modern bags include NFC tag."
+        ),
+        HouseReferenceNote(
+            houseName = "Prada",
+            keywords = listOf("prada", "saffiano", "galleria", "re-nylon", "cleoh"),
+            signatureMacroCues = "Enamel triangle plaque with crisp 'DAL 1913' spacing and distinct curved 'R' notch; corner rivets flush with enamel lip.",
+            eraAndSerialTip = "Interior white rectangular factory tag carries 2–3 digit black serif number; check Lampo/Ipi/Riri underside zipper markings."
         ),
         HouseReferenceNote(
             houseName = "Goyard",
@@ -59,6 +71,18 @@ object ExpertKnowledgeBase {
             eraAndSerialTip = "White/cream fabric certilogo/serial tag sewn inside pocket with dual-line 16-char alphanumeric code."
         ),
         HouseReferenceNote(
+            houseName = "Burberry",
+            keywords = listOf("burberry", "trench", "heritage", "check", "kensington", "chelsea"),
+            signatureMacroCues = "Symmetric Nova/Vintage check alignment across collar, pocket flaps, and placket seams; crisp horn/corozo buttons with clean laser rim text.",
+            eraAndSerialTip = "Main neck label matches era font weight; check interior multi-page fabric composition & care tag stitch line."
+        ),
+        HouseReferenceNote(
+            houseName = "Moncler",
+            keywords = listOf("moncler", "maya", "puffer", "down", "grenoble"),
+            signatureMacroCues = "Dense felt sleeve crest with tight zig-zag border stitching (never overlapping letters); crisp comic strip wash label ink without bleed.",
+            eraAndSerialTip = "Certilogo QR/12-digit code tag + RFID tag inside interior left seam."
+        ),
+        HouseReferenceNote(
             houseName = "Rolex",
             keywords = listOf("rolex", "submariner", "datejust", "daytona", "gmt", "explorer", "oyster"),
             signatureMacroCues = "Rehaut R-O-L-E-X letters centered on minute hash marks (post-2007); laser-etched crown crystal at 6h; crisp 2.5x cyclops AR coat.",
@@ -71,6 +95,12 @@ object ExpertKnowledgeBase {
             eraAndSerialTip = "8-digit serial number on lug & movement must match Master Chronometer pictograms."
         ),
         HouseReferenceNote(
+            houseName = "Audemars & Patek",
+            keywords = listOf("patek", "philippe", "nautilus", "aquanaut", "audemars", "royal oak", "ap"),
+            signatureMacroCues = "Razor-sharp hexagonal bezel screws aligned cleanly in slots (Royal Oak); uniform tapisserie / embossed wave dial relief; hand-beveled clasp bridges.",
+            eraAndSerialTip = "Inspect precious metal hallmarks (750 / St. Bernard dog) and crisp movement bridge anglage under loupe."
+        ),
+        HouseReferenceNote(
             houseName = "Cartier & Van Cleef",
             keywords = listOf("cartier", "love", "juste un clou", "tank", "santos", "van cleef", "vca", "alhambra"),
             signatureMacroCues = "Crisp deep laser/die Au750 + French eagle/dog assay hallmarks; Cartier screw-slot sharp edges without rounding; VCA milgrain pearl uniformity.",
@@ -81,6 +111,12 @@ object ExpertKnowledgeBase {
             keywords = listOf("rimowa", "classic", "original", "essential", "topas", "cabin", "trunk"),
             signatureMacroCues = "Flush domed anodized rivets; crisp multi-wheel Rimowa hub embossing; clean TSA006 lock housing alignment without burrs.",
             eraAndSerialTip = "17-digit serial engraved on outer hinge rail (pre-LVMH) or riveted aluminum plate inside shell."
+        ),
+        HouseReferenceNote(
+            houseName = "Montblanc",
+            keywords = listOf("montblanc", "meisterstück", "meisterstuck", "149", "146", "starwalker", "fountain"),
+            signatureMacroCues = "Deep crisp two-tone gold nib engraving ('4810 / M / 18K'); symmetric slit cut & rounded iridium tipping; clean resin seam polish.",
+            eraAndSerialTip = "Clip ring carries crisp 'GERMANY' + individual laser serial; verify precious-resin warm cherry glow under strong flashlight."
         )
     )
 
@@ -90,6 +126,154 @@ object ExpertKnowledgeBase {
         return houseReferences.firstOrNull { ref ->
             ref.keywords.any { kw -> q.contains(kw) }
         }
+    }
+
+    /**
+     * Synthesizes a tailored offline inspection protocol for ANY unlisted item purely on-device
+     * using material & craftsmanship keyword routing—requiring zero network calls.
+     */
+    fun buildAdaptiveOfflineProtocol(itemName: String): CategoryProtocol {
+        val cleanName = itemName.trim().ifBlank { "Custom Luxury Item" }
+        val q = cleanName.lowercase()
+        val house = findHouseReference(cleanName)
+
+        // Direct best-match routing across our 12 specialized templates when obvious
+        val matchedTemplate = when {
+            listOf("belt", "buckle").any { q.contains(it) } -> categories.firstOrNull { it.id == "belts" }
+            listOf("scarf", "silk", "shawl", "cashmere", "carré", "carre").any { q.contains(it) } -> categories.firstOrNull { it.id == "textiles" }
+            listOf("jacket", "coat", "trench", "parka", "puffer", "hoodie", "blazer", "moncler", "burberry").any { q.contains(it) } -> categories.firstOrNull { it.id == "outerwear" }
+            listOf("pen", "fountain", "nib", "montblanc", "lighter", "dupont").any { q.contains(it) } -> categories.firstOrNull { it.id == "writing" }
+            listOf("sunglass", "eyewear", "glasses", "frames", "acetate").any { q.contains(it) } -> categories.firstOrNull { it.id == "eyewear" }
+            listOf("luggage", "suitcase", "trunk", "rimowa", "cabin").any { q.contains(it) } -> categories.firstOrNull { it.id == "luggage" }
+            listOf("chrono", "patek", "nautilus", "audemars", "dress watch").any { q.contains(it) } -> categories.firstOrNull { it.id == "watch-chrono" }
+            listOf("watch", "rolex", "omega", "submariner", "datejust", "gmt", "seamaster", "speedmaster").any { q.contains(it) } -> categories.firstOrNull { it.id == "watch-dive" }
+            listOf("sneaker", "shoe", "boot", "loafer", "trainer", "heel").any { q.contains(it) } -> categories.firstOrNull { it.id == "footwear" }
+            listOf("ring", "bracelet", "necklace", "earring", "cartier", "alhambra", "gold", "jewelry").any { q.contains(it) } -> categories.firstOrNull { it.id == "jewelry" }
+            listOf("chanel", "louis vuitton", "lv", "dior", "gucci", "monogram", "quilted").any { q.contains(it) } -> categories.firstOrNull { it.id == "handbag-quilted" }
+            listOf("bag", "tote", "clutch", "wallet", "birkin", "kelly", "hermes", "hermès", "goyard", "bottega", "prada").any { q.contains(it) } -> categories.firstOrNull { it.id == "handbag-heritage" }
+            else -> null
+        }
+
+        if (matchedTemplate != null) {
+            return matchedTemplate.copy(
+                id = "adaptive-${matchedTemplate.id}",
+                name = "Tailored Offline · $cleanName",
+                defaultItemName = cleanName,
+                humanChecks = buildList {
+                    if (house != null) {
+                        add("${house.houseName} Signature Check: ${house.signatureMacroCues}")
+                        add("${house.houseName} Serial/Era Check: ${house.eraAndSerialTip}")
+                    }
+                    addAll(matchedTemplate.humanChecks)
+                },
+                isAdaptiveCustom = true
+            )
+        }
+
+        // Universal 4-pillar craftsmanship protocol for any completely novel luxury object
+        return CategoryProtocol(
+            id = "adaptive-universal",
+            name = "Universal Craftsmanship · $cleanName",
+            defaultItemName = cleanName,
+            markers = listOf(
+                MarkerSpec(
+                    id = "univ-typography",
+                    stepNumber = 1,
+                    title = "Primary Brand Stamp & Serial Typography",
+                    focusFeature = "Letterform serifs, kerning rhythm & ink/foil containment",
+                    weight = 0.30,
+                    lightingRequirement = "Soft raking side light (30° angle) without glare blowout.",
+                    angleAndDistance = "Dead-level straight-on macro at 5–8 cm centered on maker mark.",
+                    targetConfirmations = listOf(
+                        "Crisp edge definition without ink bleed or haloing",
+                        "Consistent kerning and straight horizontal baseline"
+                    ),
+                    targetAnomalies = listOf(
+                        "Thick blobbed strokes or uneven character spacing",
+                        "Shallow surface paint rather than crisp impression"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Center brand mark inside the horizontal typography guide.",
+                        reticleType = "typography-band"
+                    )
+                ),
+                MarkerSpec(
+                    id = "univ-stitch",
+                    stepNumber = 2,
+                    title = "Seam Stitching / Structural Join Regularity",
+                    focusFeature = "Stitch pitch consistency or precision joint seam cleanliness",
+                    weight = 0.25,
+                    lightingRequirement = "Diffused indirect daylight revealing surface grain cleanly.",
+                    angleAndDistance = "Perpendicular 90° macro covering 8–12 stitches or primary seam.",
+                    targetConfirmations = listOf(
+                        "Uniform stitch pitch or tight zero-gap material join",
+                        "Clean finished edges without frayed fiber or glue bleed"
+                    ),
+                    targetAnomalies = listOf(
+                        "Irregular hole spacing, loose threads, or adhesive squeeze-out",
+                        "Rough unskived edges or uneven tension"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Align primary seam horizontally through the central guide.",
+                        reticleType = "stitch-line"
+                    )
+                ),
+                MarkerSpec(
+                    id = "univ-hardware",
+                    stepNumber = 3,
+                    title = "Metal Hardware, Fasteners & Plating Grain",
+                    focusFeature = "Engraving floor clarity, screw chamfers & surface polish",
+                    weight = 0.25,
+                    lightingRequirement = "Bounced overcast light avoiding mirror hotspots on metal.",
+                    angleAndDistance = "Straight-on macro framing hardware plate, clasp, or fasteners.",
+                    targetConfirmations = listOf(
+                        "Clean CNC-milled or die-struck markings with sharp bevels",
+                        "Uniform brushed/polished grain without pitting"
+                    ),
+                    targetAnomalies = listOf(
+                        "Orange-peel casting porosity under thin plating",
+                        "Stripped/burred fastener slots or flaking coating"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Fit primary metallic hardware inside inner reticle brackets.",
+                        reticleType = "hardware-plate"
+                    )
+                ),
+                MarkerSpec(
+                    id = "univ-serial",
+                    stepNumber = 4,
+                    title = "Care / Serial Label & Edge Finishing",
+                    focusFeature = "Serial numeral typeface, tag attachment & border finishing",
+                    weight = 0.20,
+                    lightingRequirement = "Even diffused interior illumination without deep shadows.",
+                    angleAndDistance = "Perpendicular close-up framing serial/care tag and adjacent edge.",
+                    targetConfirmations = listOf(
+                        "Crisp consistent numeral printing and neat corner reinforcement",
+                        "Smooth multi-coat edge paint or clean hem finish"
+                    ),
+                    targetAnomalies = listOf(
+                        "Smudged inkjet numerals or crooked tag stitching",
+                        "Thick uneven edge paint spilling onto surface"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Capture full serial/care tag and adjacent edge inside frame.",
+                        reticleType = "serial-tag"
+                    )
+                )
+            ),
+            humanChecks = buildList {
+                if (house != null) {
+                    add("${house.houseName} Signature Check: ${house.signatureMacroCues}")
+                    add("${house.houseName} Serial/Era Check: ${house.eraAndSerialTip}")
+                }
+                add("Verify total item weight, natural material scent/hand-feel, and hardware solidity.")
+                add("Test mechanical closures, zippers, or hinges for smooth, play-free precision.")
+                add("Cross-check packaging, serial/date code era, and boutique documentation.")
+            },
+            isAdaptiveCustom = true
+        )
     }
 
     val categories: List<CategoryProtocol> = listOf(
@@ -605,6 +789,235 @@ object ExpertKnowledgeBase {
             )
         ),
         CategoryProtocol(
+            id = "belts",
+            name = "Designer Leather Belts & Buckles",
+            defaultItemName = "Reversible Calfskin Belt with Metallic Buckle",
+            markers = listOf(
+                MarkerSpec(
+                    id = "belts-typography",
+                    stepNumber = 1,
+                    title = "Inner Leather Foil Stamp & Sizing Code",
+                    focusFeature = "Hot-foil serif brand mark, sizing digits & date code kerning",
+                    weight = 0.35,
+                    lightingRequirement = "Soft raking side light (30°) avoiding metallic foil glare.",
+                    angleAndDistance = "Dead-level macro at 5–8 cm aligned with inner strap text.",
+                    targetConfirmations = listOf(
+                        "Crisp debossed serif letters with zero foil halo bleed",
+                        "Consistent baseline spacing across brand and size digits"
+                    ),
+                    targetAnomalies = listOf(
+                        "Blurry surface foil ink without crisp debossed walls",
+                        "Generic uneven fonts in sizing/serial digits"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Center inner belt stamp horizontally inside typography band.",
+                        reticleType = "typography-band"
+                    )
+                ),
+                MarkerSpec(
+                    id = "belts-hardware",
+                    stepNumber = 2,
+                    title = "Buckle Casting, Engraving & Post Stud",
+                    focusFeature = "Buckle chamfer sharpness, underside hallmark & plating smoothness",
+                    weight = 0.35,
+                    lightingRequirement = "Diffused bounce light eliminating specular blowout on buckle.",
+                    angleAndDistance = "Straight-on macro framing buckle face or underside stamp.",
+                    targetConfirmations = listOf(
+                        "Clean CNC/forged bevel edges and crisp underside brand stamp",
+                        "Smooth brushed or mirror plating without orange-peel pitting"
+                    ),
+                    targetAnomalies = listOf(
+                        "Rough cast seam lines or porous pitting along inner buckle wall",
+                        "Flaking thin chrome or uneven brass plating"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Frame primary buckle plate and hallmark inside inner corners.",
+                        reticleType = "hardware-plate"
+                    )
+                ),
+                MarkerSpec(
+                    id = "belts-stitch",
+                    stepNumber = 3,
+                    title = "Strap Perimeter Stitch & Edge Glazing",
+                    focusFeature = "Border stitch pitch consistency, punched hole edges & glazing",
+                    weight = 0.30,
+                    lightingRequirement = "Even indirect daylight highlighting border seam and leather pores.",
+                    angleAndDistance = "Perpendicular macro capturing strap edge seam and punched hole.",
+                    targetConfirmations = listOf(
+                        "Uniform stitch pitch following strap edge at fixed margin",
+                        "Clean resin edge paint without cracking or spilling onto pores"
+                    ),
+                    targetAnomalies = listOf(
+                        "Wavy stitch path drifting toward strap edge or thick rubbery paint",
+                        "Torn frayed leather inside punched buckle holes"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Align belt border stitch line horizontally through central guide.",
+                        reticleType = "stitch-line"
+                    )
+                )
+            ),
+            humanChecks = listOf(
+                "Weigh detachable metal buckle for solid brass/zamac heft vs lightweight hollow alloy.",
+                "Verify full-grain calfskin aroma and suppleness vs bonded/plasticized split leather.",
+                "Check buckle screw/post threading smoothness and keeper loop back-stitch symmetry."
+            )
+        ),
+        CategoryProtocol(
+            id = "textiles",
+            name = "Luxury Silk Scarves & Cashmere Textiles",
+            defaultItemName = "Hand-Rolled 90cm Twill Silk Scarf / Cashmere Wrap",
+            markers = listOf(
+                MarkerSpec(
+                    id = "textiles-edge",
+                    stepNumber = 1,
+                    title = "Hand-Rolled Roulotté Edge Stitching",
+                    focusFeature = "Plump rolled hem stitch pitch & silk thread tension",
+                    weight = 0.40,
+                    lightingRequirement = "Diffused neutral light highlighting rolled border fibers clearly.",
+                    angleAndDistance = "Perpendicular 90° macro at 5–8 cm along 6 cm of hem edge.",
+                    targetConfirmations = listOf(
+                        "Plump rounded hand-rolled hem with slightly irregular hand stitches",
+                        "Color-matched silk thread cleanly anchored into twill weave"
+                    ),
+                    targetAnomalies = listOf(
+                        "Flat machine overlock/zigzag seam or stiff melted synthetic edge",
+                        "Coarse polyester thread or uneven puckering"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Align rolled scarf hem horizontally through the stitch guide.",
+                        reticleType = "stitch-line"
+                    )
+                ),
+                MarkerSpec(
+                    id = "textiles-caretag",
+                    stepNumber = 2,
+                    title = "Care Tag Typography & Corner Tack Stitches",
+                    focusFeature = "Fine woven/printed care tag serif lettering & attachment stitches",
+                    weight = 0.35,
+                    lightingRequirement = "Even diffused light revealing woven backing and fine print.",
+                    angleAndDistance = "Dead-level macro framing entire care label and tack threads.",
+                    targetConfirmations = listOf(
+                        "Razor-sharp micro-serif '100% SOIE / MADE IN FRANCE/ITALY' text",
+                        "Clean two-corner or edge-matched hand tack stitches"
+                    ),
+                    targetAnomalies = listOf(
+                        "Blurred inkjet care tag, misspelled words, or thick bold font",
+                        "Cheap synthetic satin label sewn into machine hem"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Center full care tag horizontally inside typography box.",
+                        reticleType = "typography-band"
+                    )
+                ),
+                MarkerSpec(
+                    id = "textiles-print",
+                    stepNumber = 3,
+                    title = "Screen-Print Color Registration & Artist Mark",
+                    focusFeature = "Multi-screen pigment crispness & copyright © signature sharpness",
+                    weight = 0.25,
+                    lightingRequirement = "Soft daylight without specular glare across twill ribs.",
+                    angleAndDistance = "Macro at 6–8 cm centered on intricate line art or title signature.",
+                    targetConfirmations = listOf(
+                        "Crisp hairline ink registration with zero color bleed across borders",
+                        "Diagonal silk twill rib weave clearly visible beneath pigment"
+                    ),
+                    targetAnomalies = listOf(
+                        "Pixelated digital inkjet dots or muddy overlapping color borders",
+                        "Flat plain-weave polyester sheen lacking twill diagonal ribs"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Center copyright signature or fine motif lines inside frame.",
+                        reticleType = "general-macro"
+                    )
+                )
+            ),
+            humanChecks = listOf(
+                "Verify which side the roulotté hem rolls toward (Hermès hand-rolls toward the front printed side).",
+                "Check silk twill crisp drape and weight (~65g for a classic 90cm carré) vs slippery lightweight polyester.",
+                "Inspect color bleed-through on reverse side (authentic silk screen prints show rich pigment penetration)."
+            )
+        ),
+        CategoryProtocol(
+            id = "outerwear",
+            name = "Designer Outerwear & Leather Jackets",
+            defaultItemName = "Tailored Wool Trench / Down Puffer / Calfskin Jacket",
+            markers = listOf(
+                MarkerSpec(
+                    id = "outerwear-labels",
+                    stepNumber = 1,
+                    title = "Neck Label, Size Tab & Care Book Typography",
+                    focusFeature = "Woven crest thread density, comic/care wash ink & font kerning",
+                    weight = 0.35,
+                    lightingRequirement = "Even diffused daylight without flash reflection on satin labels.",
+                    angleAndDistance = "Dead-level macro framing neck label or interior care/QR label.",
+                    targetConfirmations = listOf(
+                        "High-density crisp jacquard weave without stray bridge threads",
+                        "Sharp ink lines and balanced spacing on interior composition tags"
+                    ),
+                    targetAnomalies = listOf(
+                        "Connected threads linking adjacent embroidered letters",
+                        "Blurry or washed-out ink on care labels or misspelled origin text"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Center primary neck or care label inside typography box.",
+                        reticleType = "typography-band"
+                    )
+                ),
+                MarkerSpec(
+                    id = "outerwear-hardware",
+                    stepNumber = 2,
+                    title = "Zipper Pull, Snap Buttons & Crest Hardware",
+                    focusFeature = "Die-cast zipper slider engraving, snap domes & crest teeth",
+                    weight = 0.35,
+                    lightingRequirement = "Soft bounced light showing metallic engraving without hotspot.",
+                    angleAndDistance = "Straight-on macro framing main zipper pull or branded snap button.",
+                    targetConfirmations = listOf(
+                        "Crisp recessed brand engraving on zipper pull & underside maker mark",
+                        "Smooth gunmetal/horn button bevels with uniform finish"
+                    ),
+                    targetAnomalies = listOf(
+                        "Shallow stamped zipper pull with pitted surface or rough edges",
+                        "Generic unbranded zipper teeth on luxury outerwear"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Center zipper slider or snap button inside hardware plate box.",
+                        reticleType = "hardware-plate"
+                    )
+                ),
+                MarkerSpec(
+                    id = "outerwear-stitch",
+                    stepNumber = 3,
+                    title = "Sleeve Crest / Placket & Quilting Seam Stitch",
+                    focusFeature = "Felt badge border stitch density or check-pattern seam alignment",
+                    weight = 0.30,
+                    lightingRequirement = "Indirect daylight revealing fabric weave and stitch tension.",
+                    angleAndDistance = "Perpendicular macro at 6–9 cm framing sleeve patch or main seam.",
+                    targetConfirmations = listOf(
+                        "Tight uniform border stitching and clean pattern alignment across seams",
+                        "Crisp woven/felt crest lettering without puckered backing"
+                    ),
+                    targetAnomalies = listOf(
+                        "Loose looping embroidery threads or misaligned plaid/check seams",
+                        "Uneven stitch spacing along cuff or pocket welt"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Align placket seam or patch edge horizontally in stitch guide.",
+                        reticleType = "stitch-line"
+                    )
+                )
+            ),
+            humanChecks = listOf(
+                "Test two-way zipper glide resistance and verify underside slider stamping (Lampo / Riri / Cobrax).",
+                "Assess down loft/rebound or heavyweight virgin wool drape and breathable cupro/silk lining.",
+                "Verify Certilogo/QR serial tags strictly on authentic manufacturer domain if present."
+            )
+        ),
+        CategoryProtocol(
             id = "eyewear",
             name = "Luxury Eyewear & Acetate Frames",
             defaultItemName = "Hand-Finished Acetate / Titanium Sunglasses",
@@ -755,6 +1168,83 @@ object ExpertKnowledgeBase {
                 "Test telescopic handle extension smoothness and multi-stage locking clicks without rattle.",
                 "Verify silent 360° dual-bearing wheel spin balance across hard flooring.",
                 "Inspect interior flex-divider zipper pulls, hinge stops, and shell alloy gauge/rigidity."
+            )
+        ),
+        CategoryProtocol(
+            id = "writing",
+            name = "Fine Writing Instruments & Desktop Objects",
+            defaultItemName = "Precious-Resin Fountain Pen / Luxury Pocket Lighter",
+            markers = listOf(
+                MarkerSpec(
+                    id = "writing-nib",
+                    stepNumber = 1,
+                    title = "Nib Engraving, Slit & Clip Band Tolerances",
+                    focusFeature = "Two-tone nib scroll engraving crispness & centered breather hole",
+                    weight = 0.45,
+                    lightingRequirement = "Tented diffused light avoiding mirror glare off 14k/18k nib.",
+                    angleAndDistance = "Macro at 4–6 cm perpendicular to top nib face or lighter lid hinge.",
+                    targetConfirmations = listOf(
+                        "Crisp clean-walled '4810 / 18K' nib scrollwork with centered tine slit",
+                        "Sharp rhodium/gold masking boundary line without plating bleed"
+                    ),
+                    targetAnomalies = listOf(
+                        "Shallow blurred nib stamping or off-center slit cut",
+                        "Flaking two-tone plating or rough iridium tipping"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        alignmentRule = "Center nib face or metallic cap band inside hardware frame.",
+                        reticleType = "hardware-plate"
+                    )
+                ),
+                MarkerSpec(
+                    id = "writing-serial",
+                    stepNumber = 2,
+                    title = "Cap Ring Engraving & Clip Serial Kerning",
+                    focusFeature = "Laser-engraved clip ring serial & cap-band brand typography",
+                    weight = 0.35,
+                    lightingRequirement = "Soft side lighting along curved cap ring without hotspot streak.",
+                    angleAndDistance = "Close-up macro centered on clip collar serial or cap-band lettering.",
+                    targetConfirmations = listOf(
+                        "Razor-sharp laser-etched serial numerals and balanced cap-band serifs",
+                        "Flush snowcap emblem inlay with crisp star-point symmetry"
+                    ),
+                    targetAnomalies = listOf(
+                        "Shallow stamped digits, uneven spacing, or wavy cap-band borders",
+                        "Crooked or recessed snowcap/emblem border gap"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Align cap band or clip serial horizontally in typography box.",
+                        reticleType = "typography-band"
+                    )
+                ),
+                MarkerSpec(
+                    id = "writing-barrel",
+                    stepNumber = 3,
+                    title = "Barrel Threads, Piston Seam & Resin Finish",
+                    focusFeature = "Seamless barrel parting finish & clean brass piston threads",
+                    weight = 0.20,
+                    lightingRequirement = "Neutral bounce light inspecting barrel threads and ink window.",
+                    angleAndDistance = "Macro at 5–7 cm capturing barrel-to-cone seam or section threads.",
+                    targetConfirmations = listOf(
+                        "Invisible piston knob seam when closed and clean thread crests",
+                        "Uniform deep gloss polish without mold flash lines"
+                    ),
+                    targetAnomalies = listOf(
+                        "Visible vertical mold seam line along grip section",
+                        "Plastic click threads where precision brass mechanism belongs"
+                    ),
+                    boundingBox = BoundingBoxSpec(
+                        targetFillMinPercent = 60,
+                        alignmentRule = "Frame barrel seam or grip threads cleanly in macro box.",
+                        reticleType = "general-macro"
+                    )
+                )
+            ),
+            humanChecks = listOf(
+                "Test clip spring tension, cap thread engagement smoothness, and non-magnetic 14k/18k gold nib.",
+                "Shine a strong phone LED inside black precious resin barrel for authentic deep crimson/cherry translucence (vs opaque black plastic).",
+                "Check underside of pocket clip for 'PIX' or era-appropriate engraving where specified."
             )
         )
     )

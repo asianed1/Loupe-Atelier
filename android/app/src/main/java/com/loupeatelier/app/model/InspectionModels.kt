@@ -44,8 +44,7 @@ data class MarkerAssessment(
     val confirmations: List<String>,
     val anomalies: List<String>,
     val humanJudgementNote: String,
-    val summary: String,
-    val sourceLabel: String = "On-Device Edge CV"
+    val summary: String
 )
 
 data class FinalScorecard(

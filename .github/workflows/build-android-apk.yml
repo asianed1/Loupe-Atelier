@@ -40,19 +40,39 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build Debug & Release Unsigned APKs
-        run: gradle -p android assembleDebug assembleRelease --no-daemon
+      - name: Build Optimized Release APK
+        run: gradle -p android assembleRelease --no-daemon
 
-      - name: Upload Debug APK Artifact
+      - name: Sign Release APK with Anonymous Community Keystore
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          APKSIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"
+          ZIPALIGN="$SDK_ROOT/build-tools/35.0.0/zipalign"
+          UNSIGNED_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
+          FINAL_APK="android/app/build/outputs/apk/release/LoupeAtelier-release.apk"
+
+          keytool -genkeypair -v \
+            -keystore /tmp/loupe-release.jks \
+            -storepass loupe-standalone-key \
+            -keypass loupe-standalone-key \
+            -alias loupe-release \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Loupe Atelier, O=Standalone Edge, C=US"
+
+          "$ZIPALIGN" -f -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+          "$APKSIGNER" sign \
+            --ks /tmp/loupe-release.jks \
+            --ks-key-alias loupe-release \
+            --ks-pass pass:loupe-standalone-key \
+            --key-pass pass:loupe-standalone-key \
+            --out "$FINAL_APK" \
+            "$ALIGNED_APK"
+          "$APKSIGNER" verify --verbose "$FINAL_APK"
+
+      - name: Upload Single Install-Ready Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: loupe-atelier-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: LoupeAtelier-release-apk
+          path: android/app/build/outputs/apk/release/LoupeAtelier-release.apk
           if-no-files-found: error
-
-      - name: Upload Release Unsigned APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: loupe-atelier-release-unsigned-apk
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: ignore

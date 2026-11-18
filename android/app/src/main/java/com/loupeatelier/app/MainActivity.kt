@@ -62,7 +62,6 @@ import com.loupeatelier.app.engine.CategoryProtocol
 import com.loupeatelier.app.engine.ExpertKnowledgeBase
 import com.loupeatelier.app.engine.InspectionStore
 import com.loupeatelier.app.engine.OnDeviceMacroAnalyzer
-import com.loupeatelier.app.engine.OnlineAugmentationClient
 import com.loupeatelier.app.engine.SavedInspectionEntry
 import com.loupeatelier.app.model.ClientOpticalMetrics
 import com.loupeatelier.app.model.FinalScorecard
@@ -91,6 +90,7 @@ class MainActivity : ComponentActivity() {
 fun LoupeAndroidApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val builtInProtocols = remember { ExpertKnowledgeBase.categories }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -110,13 +110,8 @@ fun LoupeAndroidApp() {
         }
     }
 
-    var customProtocols by remember { mutableStateOf<List<CategoryProtocol>>(emptyList()) }
-    val allProtocols = remember(customProtocols) { customProtocols + ExpertKnowledgeBase.categories }
-
-    var selectedProtocol by remember { mutableStateOf<CategoryProtocol>(ExpertKnowledgeBase.categories.first()) }
-    var itemName by remember { mutableStateOf(ExpertKnowledgeBase.categories.first().defaultItemName) }
-    var serverUrl by remember { mutableStateOf(InspectionStore.getServerUrl(context)) }
-    var showServerSettings by remember { mutableStateOf(false) }
+    var selectedProtocol by remember { mutableStateOf<CategoryProtocol>(builtInProtocols.first()) }
+    var itemName by remember { mutableStateOf(builtInProtocols.first().defaultItemName) }
 
     var inSetup by remember { mutableStateOf(true) }
     var showArchive by remember { mutableStateOf(false) }
@@ -124,11 +119,8 @@ fun LoupeAndroidApp() {
 
     val assessments = remember { mutableStateMapOf<String, MarkerAssessment>() }
     val thumbnails = remember { mutableStateMapOf<String, Bitmap>() }
-    val roiCaptures = remember { mutableStateMapOf<String, Bitmap>() }
-    val captureMetrics = remember { mutableStateMapOf<String, ClientOpticalMetrics>() }
 
     var isAnalyzing by remember { mutableStateOf(false) }
-    var isFetchingOnline by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var scorecard by remember { mutableStateOf<FinalScorecard?>(null) }
@@ -136,11 +128,7 @@ fun LoupeAndroidApp() {
     var savedEntries by remember { mutableStateOf<List<SavedInspectionEntry>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        val (loadedEntries, loadedCustom) = withContext(Dispatchers.IO) {
-            InspectionStore.loadAll(context) to InspectionStore.loadCustomProtocols(context)
-        }
-        savedEntries = loadedEntries
-        customProtocols = loadedCustom
+        savedEntries = withContext(Dispatchers.IO) { InspectionStore.loadAll(context) }
     }
 
     val markers = selectedProtocol.markers
@@ -152,8 +140,6 @@ fun LoupeAndroidApp() {
     fun resetSessionState() {
         assessments.clear()
         thumbnails.clear()
-        roiCaptures.clear()
-        captureMetrics.clear()
         activeStepIndex = 0
         scorecard = null
         isSaved = false
@@ -162,57 +148,25 @@ fun LoupeAndroidApp() {
     }
 
     fun runLocalAssessment(roiBitmap: Bitmap, metrics: ClientOpticalMetrics) {
+        val targetMarker = currentMarker
         scope.launch {
             isAnalyzing = true
             errorMessage = null
             statusMessage = null
             try {
-                val result = withContext(Dispatchers.Default) {
-                    OnDeviceMacroAnalyzer.analyzeMarker(roiBitmap, currentMarker, metrics)
+                val (result, thumb) = withContext(Dispatchers.Default) {
+                    val assessed = OnDeviceMacroAnalyzer.analyzeMarker(roiBitmap, targetMarker, metrics)
+                    val scaledThumb = Bitmap.createScaledBitmap(roiBitmap, 320, 240, true)
+                    if (scaledThumb !== roiBitmap) roiBitmap.recycle()
+                    assessed to scaledThumb
                 }
-                val thumb = Bitmap.createScaledBitmap(roiBitmap, 320, 240, true)
-                thumbnails[currentMarker.id] = thumb
-                roiCaptures[currentMarker.id] = roiBitmap
-                captureMetrics[currentMarker.id] = metrics
-                assessments[currentMarker.id] = result
+                thumbnails[targetMarker.id] = thumb
+                assessments[targetMarker.id] = result
                 isSaved = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "On-device macro inspection failed."
             } finally {
                 isAnalyzing = false
-            }
-        }
-    }
-
-    fun runOnlineSecondOpinion() {
-        val roi = roiCaptures[currentMarker.id] ?: return
-        val metrics = captureMetrics[currentMarker.id] ?: return
-        if (!OnlineAugmentationClient.isNetworkAvailable(context)) {
-            errorMessage = "Offline mode active — no internet connection for cloud second opinion."
-            return
-        }
-        scope.launch {
-            isFetchingOnline = true
-            errorMessage = null
-            try {
-                val cleanName = itemName.ifBlank { selectedProtocol.defaultItemName }
-                val onlineAssess = withContext(Dispatchers.IO) {
-                    OnlineAugmentationClient.requestSecondOpinion(
-                        baseUrl = serverUrl,
-                        itemName = cleanName,
-                        categoryName = selectedProtocol.name,
-                        marker = currentMarker,
-                        roiBitmap = roi,
-                        metrics = metrics
-                    )
-                }
-                assessments[currentMarker.id] = onlineAssess
-                isSaved = false
-                statusMessage = "Augmented with online vision specialist."
-            } catch (e: Exception) {
-                errorMessage = "Online second opinion unavailable: ${e.message}"
-            } finally {
-                isFetchingOnline = false
             }
         }
     }
@@ -242,7 +196,7 @@ fun LoupeAndroidApp() {
                     if (cropped !== bmp) bmp.recycle()
                     val m = ClientOpticalMetrics(
                         averageBrightness = 128,
-                        sharpnessIndex = 50,
+                        sharpnessIndex = -1,
                         width = cropped.width,
                         height = cropped.height,
                         zoomLevel = 1.0f
@@ -341,13 +295,13 @@ fun LoupeAndroidApp() {
                 }
             } else if (inSetup) {
                 Text(
-                    "Offline-First Luxury Macro Studio",
+                    "Self-Contained On-Device Pre-Screening",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF181715)
                 )
                 Text(
-                    "8 built-in offline protocols + 10 house reference archives. Optionally connect online when inspecting rare or unlisted models.",
+                    "100% private & offline. Includes 12 built-in luxury category protocols, 16 house reference archives, and an adaptive checklist generator for any unlisted item—zero servers or accounts.",
                     fontSize = 13.sp,
                     color = Color(0xFF5C5850)
                 )
@@ -380,64 +334,17 @@ fun LoupeAndroidApp() {
                     }
                 }
 
-                Row(
+                OutlinedButton(
+                    enabled = itemName.trim().length >= 3,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    onClick = {
+                        val adaptive = ExpertKnowledgeBase.buildAdaptiveOfflineProtocol(itemName)
+                        selectedProtocol = adaptive
+                        resetSessionState()
+                        statusMessage = "Tailored ${adaptive.markers.size}-step offline protocol built for \"${adaptive.defaultItemName}\"."
+                    }
                 ) {
-                    OutlinedButton(
-                        enabled = !isFetchingOnline && itemName.trim().length >= 3,
-                        onClick = {
-                            if (!OnlineAugmentationClient.isNetworkAvailable(context)) {
-                                errorMessage = "Offline: connect to Wi-Fi or mobile data to fetch unlisted model specs."
-                                return@OutlinedButton
-                            }
-                            scope.launch {
-                                isFetchingOnline = true
-                                errorMessage = null
-                                statusMessage = null
-                                try {
-                                    val fetched = withContext(Dispatchers.IO) {
-                                        val proto = OnlineAugmentationClient.fetchCustomProtocol(
-                                            baseUrl = serverUrl,
-                                            itemDescription = itemName.trim()
-                                        )
-                                        val updated = InspectionStore.saveCustomProtocol(context, proto)
-                                        proto to updated
-                                    }
-                                    customProtocols = fetched.second
-                                    selectedProtocol = fetched.first
-                                    resetSessionState()
-                                    statusMessage = "Downloaded & cached ${fetched.first.markers.size}-step protocol offline."
-                                } catch (e: Exception) {
-                                    errorMessage = "Online protocol fetch failed: ${e.message}"
-                                } finally {
-                                    isFetchingOnline = false
-                                }
-                            }
-                        }
-                    ) {
-                        Text(
-                            if (isFetchingOnline) "Fetching Online..." else "Augment Unlisted Model Online",
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    OutlinedButton(onClick = { showServerSettings = !showServerSettings }) {
-                        Text(if (showServerSettings) "Hide Host" else "Host", fontSize = 12.sp)
-                    }
-                }
-
-                if (showServerSettings) {
-                    OutlinedTextField(
-                        value = serverUrl,
-                        onValueChange = {
-                            serverUrl = it
-                            InspectionStore.saveServerUrl(context, it)
-                        },
-                        label = { Text("Optional Online Augmentation Host") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text("Auto-Match & Tailor Checklist for Typed Item", fontSize = 12.sp)
                 }
 
                 statusMessage?.let {
@@ -447,7 +354,24 @@ fun LoupeAndroidApp() {
                     Text(it, fontSize = 12.sp, color = Color(0xFFB44332))
                 }
 
-                allProtocols.forEach { proto ->
+                if (selectedProtocol.isAdaptiveCustom) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .border(2.dp, Color(0xFF1D6A4E), RoundedCornerShape(12.dp))
+                            .padding(14.dp)
+                    ) {
+                        Text(selectedProtocol.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1D6A4E))
+                        Text(
+                            "${selectedProtocol.markers.size} Tailored Markers · Ready 100% Offline",
+                            fontSize = 12.sp,
+                            color = Color(0xFF5C5850)
+                        )
+                    }
+                }
+
+                builtInProtocols.forEach { proto ->
                     val isSelected = proto.id == selectedProtocol.id
                     Column(
                         modifier = Modifier
@@ -465,10 +389,9 @@ fun LoupeAndroidApp() {
                             }
                             .padding(14.dp)
                     ) {
-                        val badge = if (proto.isCustomCached) " · Cached Online" else " · Offline Ready"
                         Text(proto.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                         Text(
-                            "${proto.markers.size} Sequential Markers$badge · ${proto.defaultItemName}",
+                            "${proto.markers.size} Sequential Markers · ${proto.defaultItemName}",
                             fontSize = 12.sp,
                             color = Color(0xFF5C5850)
                         )
@@ -591,7 +514,7 @@ fun LoupeAndroidApp() {
                                 Text("0${marker.stepNumber}. ${marker.title}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 if (a != null) {
                                     Text(
-                                        "Signal ${a.authenticityScore}/100 · Conf ${a.confidenceScore}/100 · ${a.sourceLabel}",
+                                        "Signal ${a.authenticityScore}/100 · Conf ${a.confidenceScore}/100",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -663,7 +586,7 @@ fun LoupeAndroidApp() {
                 } else {
                     MacroCameraViewfinder(
                         marker = currentMarker,
-                        isAnalyzing = isAnalyzing || isFetchingOnline,
+                        isAnalyzing = isAnalyzing,
                         onCaptured = { roiBitmap, metrics ->
                             runLocalAssessment(roiBitmap, metrics)
                         },
@@ -673,9 +596,6 @@ fun LoupeAndroidApp() {
                     )
                 }
 
-                statusMessage?.let {
-                    Text(it, color = Color(0xFF1D6A4E), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                }
                 errorMessage?.let {
                     Text(it, color = Color(0xFFB44332), fontSize = 13.sp)
                 }
@@ -711,7 +631,7 @@ fun LoupeAndroidApp() {
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    "${assess.sourceLabel} · Box ${assess.framingScore}% · Light ${assess.lightingScore}% · Focus ${assess.sharpnessScore}%",
+                                    "Box ${assess.framingScore}% · Light ${assess.lightingScore}% · Focus ${assess.sharpnessScore}%",
                                     fontSize = 12.sp,
                                     color = Color(0xFF5C5850)
                                 )
@@ -728,18 +648,6 @@ fun LoupeAndroidApp() {
                         assess.confirmations.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFF1D6A4E)) }
                         assess.anomalies.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFFB44332)) }
                         Text("Human Check: ${assess.humanJudgementNote}", fontSize = 12.sp, color = Color(0xFF5C5850))
-
-                        if (roiCaptures[currentMarker.id] != null && !assess.sourceLabel.contains("Online", ignoreCase = true)) {
-                            OutlinedButton(
-                                enabled = !isFetchingOnline && !isAnalyzing,
-                                onClick = { runOnlineSecondOpinion() }
-                            ) {
-                                Text(
-                                    if (isFetchingOnline) "Consulting Cloud Specialist..." else "Run Online Second Opinion (~80 KB)",
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
                     }
                 }
 
@@ -749,6 +657,7 @@ fun LoupeAndroidApp() {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     OutlinedButton(
+                        enabled = !isAnalyzing,
                         onClick = {
                             if (activeStepIndex > 0) activeStepIndex-- else inSetup = true
                         }
@@ -757,6 +666,7 @@ fun LoupeAndroidApp() {
                     }
                     if (activeStepIndex < markers.lastIndex) {
                         Button(
+                            enabled = !isAnalyzing,
                             onClick = { activeStepIndex++ },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF181715))
                         ) {
@@ -764,7 +674,7 @@ fun LoupeAndroidApp() {
                         }
                     } else {
                         Button(
-                            enabled = assessments.isNotEmpty() && !isAnalyzing && !isFetchingOnline,
+                            enabled = assessments.isNotEmpty() && !isAnalyzing,
                             onClick = {
                                 scorecard = OnDeviceMacroAnalyzer.synthesizeScorecard(
                                     protocol = selectedProtocol,

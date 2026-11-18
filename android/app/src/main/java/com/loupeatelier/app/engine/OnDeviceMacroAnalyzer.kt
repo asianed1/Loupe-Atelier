@@ -92,12 +92,19 @@ object OnDeviceMacroAnalyzer {
 
         // 2. Macro Focus Sharpness (0-100)
         val lapSharpness = computeCentralLaplacianScore(gray, w, h)
-        val sharpnessScore = ((lapSharpness * 0.85) + (captureMetrics.sharpnessIndex * 0.15))
-            .roundToInt()
-            .coerceIn(0, 100)
+        val sharpnessScore = if (captureMetrics.sharpnessIndex >= 0) {
+            ((lapSharpness * 0.85) + (captureMetrics.sharpnessIndex * 0.15))
+                .roundToInt()
+                .coerceIn(0, 100)
+        } else {
+            lapSharpness
+        }
 
         // 3. Bounding-Box Proportion & Subject Presence Fit (0-100)
-        val framingScore = computeBoundingBoxFitScore(gray, w, h)
+        val isSmoothSubstrate = marker.boundingBox.reticleType in setOf(
+            "hardware-plate", "dial-circle", "typography-band", "serial-tag"
+        )
+        val framingScore = computeBoundingBoxFitScore(gray, w, h, isSmoothSubstrate)
 
         val qualityPassed = framingScore >= 55 && lightingScore >= 50 && sharpnessScore >= 55
 
@@ -170,8 +177,7 @@ object OnDeviceMacroAnalyzer {
             humanJudgementNote = marker.targetConfirmations.firstOrNull()?.let {
                 "Physically verify: $it under a 10x loupe alongside tactile inspection."
             } ?: "Verify material weight and physical finishing alongside visual score.",
-            summary = summary,
-            sourceLabel = "On-Device Edge CV"
+            summary = summary
         )
     }
 
@@ -185,7 +191,6 @@ object OnDeviceMacroAnalyzer {
         var weightedConf = 0.0
         var baseWeightSum = 0.0
         val lowConfidence = mutableListOf<String>()
-        var cloudAugmentedCount = 0
 
         for (marker in protocol.markers) {
             val assess = assessments.find { it.markerId == marker.id } ?: continue
@@ -198,9 +203,6 @@ object OnDeviceMacroAnalyzer {
 
             if (!assess.qualityPassed || assess.confidenceScore < 60) {
                 lowConfidence.add(marker.title)
-            }
-            if (assess.sourceLabel.contains("Online", ignoreCase = true)) {
-                cloudAugmentedCount++
             }
         }
 
@@ -217,12 +219,7 @@ object OnDeviceMacroAnalyzer {
 
         val houseTip = ExpertKnowledgeBase.findHouseReference(itemName)
         val summary = buildString {
-            append("Evaluated ${assessments.size} of ${protocol.markers.size} macro markers ")
-            if (cloudAugmentedCount > 0) {
-                append("($cloudAugmentedCount augmented online) ")
-            } else {
-                append("(100% on-device) ")
-            }
+            append("On-device edge screening evaluated ${assessments.size} of ${protocol.markers.size} macro markers ")
             append("for $itemName, yielding a $overallProb/100 visual authenticity probability ")
             append("with $overallConf/100 optical confidence. ")
             if (lowConfidence.isNotEmpty()) {
@@ -276,12 +273,18 @@ object OnDeviceMacroAnalyzer {
         return ((sqrt(variance) / 26.0) * 100.0).roundToInt().coerceIn(0, 100)
     }
 
-    private fun computeBoundingBoxFitScore(gray: FloatArray, w: Int, h: Int): Int {
+    private fun computeBoundingBoxFitScore(
+        gray: FloatArray,
+        w: Int,
+        h: Int,
+        isSmoothSubstrate: Boolean
+    ): Int {
         var innerEnergy = 0.0
         var innerCount = 0
         var borderEnergy = 0.0
         var borderCount = 0
         var activeCells = 0
+        var crispFeatureCells = 0
         var totalCells = 0
 
         val xMin = (w * 0.14).toInt()
@@ -300,7 +303,8 @@ object OnDeviceMacroAnalyzer {
                 if (x in xMin..xMax && y in yMin..yMax) {
                     innerEnergy += mag
                     innerCount++
-                    if (mag > 13f) activeCells++
+                    if (mag > 12f) activeCells++
+                    if (mag > 32f) crispFeatureCells++
                     totalCells++
                 } else {
                     borderEnergy += mag
@@ -312,12 +316,18 @@ object OnDeviceMacroAnalyzer {
         val innerMean = if (innerCount > 0) innerEnergy / innerCount else 0.0
         val borderMean = if (borderCount > 0) borderEnergy / borderCount else 0.0
         val fillCoverage = if (totalCells > 0) activeCells.toDouble() / totalCells else 0.0
+        val crispRatio = if (totalCells > 0) crispFeatureCells.toDouble() / totalCells else 0.0
 
-        // Reject blank/covered lens or extreme far-away shots lacking macro texture
-        if (innerMean < 6.0 || fillCoverage < 0.07) return 26
+        // Reject blank/covered lens or featureless shots
+        if (innerMean < 4.5 || (fillCoverage < 0.05 && crispRatio < 0.015)) return 26
 
-        val concentrationRatio = innerMean / (borderMean + 4.0)
-        val raw = (innerMean * 2.1 + concentrationRatio * 24.0 + fillCoverage * 34.0).roundToInt()
+        val concentrationRatio = innerMean / (borderMean + 3.5)
+        val raw = if (isSmoothSubstrate) {
+            // Smooth metal plates, dials, and stamped leather have crisp focal engravings over calmer backgrounds
+            (innerMean * 1.9 + concentrationRatio * 28.0 + fillCoverage * 26.0 + crispRatio * 120.0).roundToInt()
+        } else {
+            (innerMean * 2.1 + concentrationRatio * 24.0 + fillCoverage * 34.0).roundToInt()
+        }
         return raw.coerceIn(22, 98)
     }
 
@@ -356,8 +366,9 @@ object OnDeviceMacroAnalyzer {
                     val bin = (deg / 10.0).toInt().coerceIn(0, 17)
                     angleBins[bin]++
                     strongEdges++
-                    // Oblique stitch angle bins vs flat 0/90/180 seam lines
-                    if (bin in 1..4 || bin in 13..16) {
+                    // Gradient angles perpendicular to slanted saddle stitches (~15-35 deg off axis),
+                    // excluding purely horizontal/vertical lock-stitch or straight edge lines (bins 0, 8, 9, 17)
+                    if (bin in 1..3 || bin in 6..7 || bin in 10..11 || bin in 14..16) {
                         obliqueEdges++
                     }
                 }
