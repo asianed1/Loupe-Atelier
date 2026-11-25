@@ -59,6 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.loupeatelier.app.engine.CategoryProtocol
+import com.loupeatelier.app.engine.DemoSampleGallery
+import com.loupeatelier.app.engine.DemoSampleKind
+import com.loupeatelier.app.engine.DemoSampleSpec
 import com.loupeatelier.app.engine.ExpertKnowledgeBase
 import com.loupeatelier.app.engine.InspectionStore
 import com.loupeatelier.app.engine.OnDeviceMacroAnalyzer
@@ -84,6 +87,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+private data class DemoBatchResult(
+    val assessments: Map<String, MarkerAssessment>,
+    val thumbnails: Map<String, Bitmap>,
+    val labels: Map<String, String>,
+    val scorecard: FinalScorecard
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,10 +125,13 @@ fun LoupeAndroidApp() {
 
     var inSetup by remember { mutableStateOf(true) }
     var showArchive by remember { mutableStateOf(false) }
+    var showDemoGallery by remember { mutableStateOf(false) }
     var activeStepIndex by remember { mutableIntStateOf(0) }
 
     val assessments = remember { mutableStateMapOf<String, MarkerAssessment>() }
     val thumbnails = remember { mutableStateMapOf<String, Bitmap>() }
+    val demoSampleUsed = remember { mutableStateMapOf<String, String>() }
+    val demoPreviews = remember { mutableStateMapOf<String, Bitmap>() }
 
     var isAnalyzing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -131,6 +144,17 @@ fun LoupeAndroidApp() {
         savedEntries = withContext(Dispatchers.IO) { InspectionStore.loadAll(context) }
     }
 
+    LaunchedEffect(showDemoGallery) {
+        if (showDemoGallery && demoPreviews.isEmpty()) {
+            val generated = withContext(Dispatchers.Default) {
+                DemoSampleGallery.samples.associate { sample ->
+                    sample.id to DemoSampleGallery.renderSampleBitmap(sample.id, width = 240, height = 180)
+                }
+            }
+            demoPreviews.putAll(generated)
+        }
+    }
+
     val markers = selectedProtocol.markers
     val currentMarker = markers[activeStepIndex.coerceIn(0, markers.lastIndex)]
     val currentAssessment = assessments[currentMarker.id]
@@ -140,6 +164,7 @@ fun LoupeAndroidApp() {
     fun resetSessionState() {
         assessments.clear()
         thumbnails.clear()
+        demoSampleUsed.clear()
         activeStepIndex = 0
         scorecard = null
         isSaved = false
@@ -147,7 +172,11 @@ fun LoupeAndroidApp() {
         statusMessage = null
     }
 
-    fun runLocalAssessment(roiBitmap: Bitmap, metrics: ClientOpticalMetrics) {
+    fun runLocalAssessment(
+        roiBitmap: Bitmap,
+        metrics: ClientOpticalMetrics,
+        demoLabel: String? = null
+    ) {
         val targetMarker = currentMarker
         scope.launch {
             isAnalyzing = true
@@ -162,9 +191,125 @@ fun LoupeAndroidApp() {
                 }
                 thumbnails[targetMarker.id] = thumb
                 assessments[targetMarker.id] = result
+                if (demoLabel != null) {
+                    demoSampleUsed[targetMarker.id] = demoLabel
+                } else {
+                    demoSampleUsed.remove(targetMarker.id)
+                }
                 isSaved = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "On-device macro inspection failed."
+            } finally {
+                isAnalyzing = false
+            }
+        }
+    }
+
+    fun runDemoSample(sample: DemoSampleSpec) {
+        val wasInSetup = inSetup
+        val targetProtocol = if (wasInSetup) builtInProtocols.first() else selectedProtocol
+        val targetIdx = if (wasInSetup) {
+            targetProtocol.markers.indexOfFirst { it.boundingBox.reticleType == sample.targetReticleType }
+                .takeIf { it >= 0 } ?: 0
+        } else {
+            activeStepIndex.coerceIn(0, targetProtocol.markers.lastIndex)
+        }
+        val targetMarker = targetProtocol.markers[targetIdx]
+
+        if (wasInSetup) {
+            selectedProtocol = targetProtocol
+            itemName = "[DEMO] ${targetProtocol.defaultItemName}"
+            resetSessionState()
+            activeStepIndex = targetIdx
+            inSetup = false
+        }
+        scorecard = null
+        showDemoGallery = false
+
+        scope.launch {
+            isAnalyzing = true
+            errorMessage = null
+            statusMessage = null
+            try {
+                val (result, thumb) = withContext(Dispatchers.Default) {
+                    val bmp = DemoSampleGallery.renderSampleBitmap(sample.id, width = 960, height = 720)
+                    val metrics = ClientOpticalMetrics(
+                        averageBrightness = 128,
+                        sharpnessIndex = -1,
+                        width = bmp.width,
+                        height = bmp.height,
+                        zoomLevel = 1.0f
+                    )
+                    val assessed = OnDeviceMacroAnalyzer.analyzeMarker(bmp, targetMarker, metrics)
+                    val scaledThumb = Bitmap.createScaledBitmap(bmp, 320, 240, true)
+                    if (scaledThumb !== bmp) bmp.recycle()
+                    assessed to scaledThumb
+                }
+                thumbnails[targetMarker.id] = thumb
+                assessments[targetMarker.id] = result
+                demoSampleUsed[targetMarker.id] = sample.title
+                isSaved = false
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Demo sample inspection failed."
+            } finally {
+                isAnalyzing = false
+            }
+        }
+    }
+
+    fun runFullDemoWalkthrough(preferDefect: Boolean) {
+        val demoProtocol = builtInProtocols.first()
+        val demoItemName = if (preferDefect) {
+            "[DEMO] Structured Calfskin Flap (Counterfeit Defect Set)"
+        } else {
+            "[DEMO] Structured Calfskin Flap (Clean Benchmark Set)"
+        }
+        selectedProtocol = demoProtocol
+        itemName = demoItemName
+        resetSessionState()
+        inSetup = false
+        showDemoGallery = false
+
+        scope.launch {
+            isAnalyzing = true
+            errorMessage = null
+            try {
+                val batch = withContext(Dispatchers.Default) {
+                    val outAssess = mutableMapOf<String, MarkerAssessment>()
+                    val outThumbs = mutableMapOf<String, Bitmap>()
+                    val outLabels = mutableMapOf<String, String>()
+                    demoProtocol.markers.forEach { marker ->
+                        val sample = DemoSampleGallery.recommendedSampleFor(
+                            marker.boundingBox.reticleType,
+                            preferDefect = preferDefect
+                        )
+                        val bmp = DemoSampleGallery.renderSampleBitmap(sample.id, width = 960, height = 720)
+                        val metrics = ClientOpticalMetrics(
+                            averageBrightness = 128,
+                            sharpnessIndex = -1,
+                            width = bmp.width,
+                            height = bmp.height,
+                            zoomLevel = 1.0f
+                        )
+                        outAssess[marker.id] = OnDeviceMacroAnalyzer.analyzeMarker(bmp, marker, metrics)
+                        val scaledThumb = Bitmap.createScaledBitmap(bmp, 320, 240, true)
+                        if (scaledThumb !== bmp) bmp.recycle()
+                        outThumbs[marker.id] = scaledThumb
+                        outLabels[marker.id] = sample.title
+                    }
+                    val finalCard = OnDeviceMacroAnalyzer.synthesizeScorecard(
+                        protocol = demoProtocol,
+                        itemName = demoItemName,
+                        assessments = demoProtocol.markers.mapNotNull { outAssess[it.id] }
+                    )
+                    DemoBatchResult(outAssess, outThumbs, outLabels, finalCard)
+                }
+                assessments.putAll(batch.assessments)
+                thumbnails.putAll(batch.thumbnails)
+                demoSampleUsed.putAll(batch.labels)
+                scorecard = batch.scorecard
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Full demo walkthrough failed."
             } finally {
                 isAnalyzing = false
             }
@@ -224,7 +369,10 @@ fun LoupeAndroidApp() {
                 },
                 actions = {
                     OutlinedButton(
-                        onClick = { showArchive = !showArchive },
+                        onClick = {
+                            showDemoGallery = false
+                            showArchive = !showArchive
+                        },
                         modifier = Modifier.padding(end = 12.dp)
                     ) {
                         Text(if (showArchive) "Close" else "Saved (${savedEntries.size})", fontSize = 12.sp)
@@ -293,6 +441,128 @@ fun LoupeAndroidApp() {
                         }
                     }
                 }
+            } else if (showDemoGallery) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Demo Mode · Sample Gallery", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(onClick = { showDemoGallery = false }) {
+                        Text("Back", fontSize = 12.sp)
+                    }
+                }
+                Text(
+                    "Demonstrate Loupe Atelier without a physical luxury item. Every sample feeds a real 960×720 macro image into the on-device computer-vision analyzer (no faked scores).",
+                    fontSize = 13.sp,
+                    color = Color(0xFF5C5850)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        enabled = !isAnalyzing,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB44332)),
+                        onClick = { runFullDemoWalkthrough(preferDefect = true) }
+                    ) {
+                        Text("4-Step Defect Demo", fontSize = 12.sp)
+                    }
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        enabled = !isAnalyzing,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D6A4E)),
+                        onClick = { runFullDemoWalkthrough(preferDefect = false) }
+                    ) {
+                        Text("4-Step Clean Demo", fontSize = 12.sp)
+                    }
+                }
+
+                HorizontalDivider()
+
+                val orderedSamples = remember(inSetup, currentMarker.id) {
+                    if (inSetup) {
+                        DemoSampleGallery.samples
+                    } else {
+                        DemoSampleGallery.samples.sortedByDescending {
+                            it.targetReticleType == currentMarker.boundingBox.reticleType
+                        }
+                    }
+                }
+
+                orderedSamples.forEach { sample ->
+                    val previewBmp = demoPreviews[sample.id]
+                    val matchesStep = !inSetup && sample.targetReticleType == currentMarker.boundingBox.reticleType
+                    val badgeColor = when (sample.kind) {
+                        DemoSampleKind.DEFECT -> Color(0xFFB44332)
+                        DemoSampleKind.BENCHMARK -> Color(0xFF1D6A4E)
+                        DemoSampleKind.OPTICAL_FAIL -> Color(0xFF9A6B2F)
+                    }
+                    val badgeLabel = when (sample.kind) {
+                        DemoSampleKind.DEFECT -> "DEFECT SAMPLE"
+                        DemoSampleKind.BENCHMARK -> "CLEAN BENCHMARK"
+                        DemoSampleKind.OPTICAL_FAIL -> "RETAKE GATE DEMO"
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .border(
+                                width = if (matchesStep) 2.dp else 1.dp,
+                                color = if (matchesStep) Color(0xFFE3B873) else Color(0xFFE2DDD2),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (previewBmp != null) {
+                                Image(
+                                    bitmap = previewBmp.asImageBitmap(),
+                                    contentDescription = sample.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .width(96.dp)
+                                        .aspectRatio(4f / 3f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = if (matchesStep) "$badgeLabel · MATCHES STEP 0${currentMarker.stepNumber}" else badgeLabel,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = badgeColor
+                                )
+                                Text(sample.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text(sample.subtitle, fontSize = 12.sp, color = Color(0xFF5C5850))
+                            }
+                        }
+                        Text(sample.expectedNote, fontSize = 11.sp, color = Color(0xFF5C5850))
+                        OutlinedButton(
+                            enabled = !isAnalyzing,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { runDemoSample(sample) }
+                        ) {
+                            Text(
+                                text = if (inSetup) {
+                                    "Inspect This Sample Now"
+                                } else {
+                                    "Test on Step 0${currentMarker.stepNumber} (${currentMarker.title.take(20)}…)"
+                                },
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
             } else if (inSetup) {
                 Text(
                     "Self-Contained On-Device Pre-Screening",
@@ -305,6 +575,13 @@ fun LoupeAndroidApp() {
                     fontSize = 13.sp,
                     color = Color(0xFF5C5850)
                 )
+
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showDemoGallery = true }
+                ) {
+                    Text("Demo Mode · Sample Defect & Benchmark Gallery", fontSize = 12.sp)
+                }
 
                 OutlinedTextField(
                     value = itemName,
@@ -512,6 +789,14 @@ fun LoupeAndroidApp() {
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("0${marker.stepNumber}. ${marker.title}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                demoSampleUsed[marker.id]?.let { label ->
+                                    Text(
+                                        "DEMO SAMPLE · $label",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF9A6B2F),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                                 if (a != null) {
                                     Text(
                                         "Signal ${a.authenticityScore}/100 · Conf ${a.confidenceScore}/100",
@@ -575,12 +860,29 @@ fun LoupeAndroidApp() {
                 Text(currentMarker.angleAndDistance, fontSize = 13.sp, color = Color(0xFF5C5850))
 
                 if (!hasCameraPermission) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                            Text("Grant Camera")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }
+                        ) {
+                            Text("Grant Camera Permission", fontSize = 12.sp)
                         }
-                        OutlinedButton(onClick = { galleryLauncher.launch("image/*") }) {
-                            Text("Pick Macro Photo")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                onClick = { galleryLauncher.launch("image/*") }
+                            ) {
+                                Text("Gallery Photo", fontSize = 12.sp)
+                            }
+                            OutlinedButton(
+                                modifier = Modifier.weight(1f),
+                                onClick = { showDemoGallery = true }
+                            ) {
+                                Text("Demo Samples", fontSize = 12.sp)
+                            }
                         }
                     }
                 } else {
@@ -592,6 +894,9 @@ fun LoupeAndroidApp() {
                         },
                         onUploadFromGallery = {
                             galleryLauncher.launch("image/*")
+                        },
+                        onOpenDemoSamples = {
+                            showDemoGallery = true
                         }
                     )
                 }
@@ -609,6 +914,14 @@ fun LoupeAndroidApp() {
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        demoSampleUsed[currentMarker.id]?.let { label ->
+                            Text(
+                                "DEMO SAMPLE · $label",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF9A6B2F)
+                            )
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)

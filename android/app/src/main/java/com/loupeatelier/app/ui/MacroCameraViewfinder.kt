@@ -64,7 +64,8 @@ fun MacroCameraViewfinder(
     marker: MarkerSpec,
     isAnalyzing: Boolean,
     onCaptured: (roiBitmap: Bitmap, metrics: ClientOpticalMetrics) -> Unit,
-    onUploadFromGallery: () -> Unit
+    onUploadFromGallery: () -> Unit,
+    onOpenDemoSamples: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -360,7 +361,7 @@ fun MacroCameraViewfinder(
             )
         }
 
-        // Row 1: Optical tuning controls (Zoom, EV Bias, Auto/Manual Light, Photo Picker)
+        // Row 1: Optical tuning controls (Zoom, EV Bias, Auto/Manual Light)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -414,9 +415,28 @@ fun MacroCameraViewfinder(
                     )
                 }
             }
+        }
 
-            OutlinedButton(onClick = onUploadFromGallery) {
-                Text("Gallery", fontSize = 11.sp)
+        // Row 2: Photo Gallery & Built-in Demo Sample Gallery
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                modifier = Modifier.weight(1f),
+                enabled = !isAnalyzing && !isCapturing,
+                onClick = onUploadFromGallery
+            ) {
+                Text("Gallery Photo", fontSize = 11.sp)
+            }
+            OutlinedButton(
+                modifier = Modifier.weight(1f),
+                enabled = !isAnalyzing && !isCapturing,
+                onClick = onOpenDemoSamples
+            ) {
+                Text("Demo Samples", fontSize = 11.sp)
             }
         }
 
