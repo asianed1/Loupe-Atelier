@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Subtle outer ring on white circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E2DDD2"
+        android:strokeWidth="1.5"
+        android:pathData="M54,22 A32,32 0 1,1 53.99,22 Z" />
+
+    <!-- Folded jeweler's loupe swing case / handle in crisp black -->
+    <path
+        android:fillColor="#111111"
+        android:pathData="M59,62 L76,74 C78.5,75.8 79,79.2 77,81.5 C75,83.8 71.5,83.8 69.2,81.8 L53,68 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M73.5,77.5 A2,2 0 1,1 73.49,77.5 Z" />
+
+    <!-- Outer loupe metal bezel in black -->
+    <path
+        android:fillColor="#111111"
+        android:pathData="M50,31 A19,19 0 1,1 49.99,31 Z" />
+
+    <!-- Royal blue optical lens ring -->
+    <path
+        android:fillColor="#1D5CE5"
+        android:pathData="M50,35 A15,15 0 1,1 49.99,35 Z" />
+
+    <!-- Bright optical glass interior -->
+    <path
+        android:fillColor="#EEF4FF"
+        android:pathData="M50,39.5 A10.5,10.5 0 1,1 49.99,39.5 Z" />
+
+    <!-- Crisp white optical glint reflection -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M43.5,46.5 A7,7 0 0,1 50.5,41.8" />
+</vector>

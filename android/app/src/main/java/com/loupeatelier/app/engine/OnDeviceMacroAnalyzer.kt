@@ -156,9 +156,9 @@ object OnDeviceMacroAnalyzer {
         }
 
         val summary = if (qualityPassed) {
-            "On-device macro screening scored $adjustedAuthScore/100 visual consistency ($finalConfidence% optical confidence) for ${marker.title}."
+            "Close-up check scored $adjustedAuthScore/100 ($finalConfidence% photo clarity) for ${marker.title}."
         } else {
-            "Optical quality or bounding-box fill fell below macro threshold; confidence lowered to $finalConfidence%. Retake recommended."
+            "Photo clarity or framing was too low ($finalConfidence%); please retake for a reliable check."
         }
 
         return MarkerAssessment(
@@ -175,8 +175,8 @@ object OnDeviceMacroAnalyzer {
             confirmations = featureEval.confirmations,
             anomalies = featureEval.anomalies,
             humanJudgementNote = marker.targetConfirmations.firstOrNull()?.let {
-                "Physically verify: $it under a 10x loupe alongside tactile inspection."
-            } ?: "Verify material weight and physical finishing alongside visual score.",
+                "Check in person: $it (look closely with your eyes and touch)."
+            } ?: "Check material weight, smell, and finish with your own hands.",
             summary = summary
         )
     }
@@ -211,29 +211,29 @@ object OnDeviceMacroAnalyzer {
 
         val verdict = when {
             overallConf < 55 || lowConfidence.size >= (protocol.markers.size + 1) / 2 ->
-                "Inconclusive — Retake or Human Audit Needed"
-            overallProb >= 78 -> "High Visual Consistency"
-            overallProb >= 58 -> "Moderate Visual Consistency"
-            else -> "Elevated Anomaly Signal"
+                "Unclear Photos — Retake Needed"
+            overallProb >= 78 -> "Looks Consistent Visually"
+            overallProb >= 58 -> "Mixed Signs — Check Closer"
+            else -> "Warning Signs Found"
         }
 
         val houseTip = ExpertKnowledgeBase.findHouseReference(itemName)
         val summary = buildString {
-            append("On-device edge screening evaluated ${assessments.size} of ${protocol.markers.size} macro markers ")
-            append("for $itemName, yielding a $overallProb/100 visual authenticity probability ")
-            append("with $overallConf/100 optical confidence. ")
+            append("Checked ${assessments.size} of ${protocol.markers.size} close-up photos ")
+            append("for $itemName: overall visual score is $overallProb/100 ")
+            append("with $overallConf/100 photo clarity. ")
             if (lowConfidence.isNotEmpty()) {
-                append("Confidence penalized on: ${lowConfidence.joinToString(", ")}. ")
+                append("Unclear or blurry on: ${lowConfidence.joinToString(", ")}. ")
             }
             if (houseTip != null) {
-                append("House cue (${houseTip.houseName}): ${houseTip.eraAndSerialTip}")
+                append("${houseTip.houseName} tip: ${houseTip.eraAndSerialTip}")
             }
         }
 
         val combinedHumanChecks = buildList {
             if (houseTip != null) {
-                add("${houseTip.houseName} Signature Check: ${houseTip.signatureMacroCues}")
-                add("${houseTip.houseName} Serial/Era Check: ${houseTip.eraAndSerialTip}")
+                add("${houseTip.houseName} Visual Tip: ${houseTip.signatureMacroCues}")
+                add("${houseTip.houseName} Serial/Tag Tip: ${houseTip.eraAndSerialTip}")
             }
             addAll(protocol.humanChecks)
         }
@@ -245,7 +245,7 @@ object OnDeviceMacroAnalyzer {
             executiveSummary = summary,
             lowConfidenceMarkers = lowConfidence,
             prioritizedHumanChecks = combinedHumanChecks,
-            disclaimer = "Pre-Screening Notice: Scores reflect probabilistic visual macro signals (stitch slant & pitch regularity, adaptive typography kerning/bleed, metal grain & porosity, and optical framing). They do not constitute a 100% authentication guarantee and must be paired with qualified human judgement."
+            disclaimer = "Helpful Note: These scores measure close-up visual details (stitching slant & spacing, print sharpness, metal surface finish, and photo clarity). They are a smart pre-screening helper—not a 100% guarantee—so always pair them with your own hands-on inspection or a professional appraisal."
         )
     }
 

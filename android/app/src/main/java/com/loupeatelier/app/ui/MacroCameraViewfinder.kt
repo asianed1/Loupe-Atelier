@@ -310,7 +310,7 @@ fun MacroCameraViewfinder(
             }
 
             Text(
-                text = "Tap frame to focus · Fill ${marker.boundingBox.targetFillMinPercent}–${marker.boundingBox.targetFillMaxPercent}%",
+                text = "Center detail in box (fill ${marker.boundingBox.targetFillMinPercent}–${marker.boundingBox.targetFillMaxPercent}%) · Tap to focus",
                 color = Color.White,
                 fontSize = 11.sp,
                 modifier = Modifier
@@ -526,9 +526,9 @@ fun MacroCameraViewfinder(
         ) {
             Text(
                 text = when {
-                    isCapturing -> "Locking Macro Frame..."
-                    isAnalyzing -> "Analyzing Macro Markers..."
-                    else -> "Capture & Score Bounding Box"
+                    isCapturing -> "Taking Close-Up..."
+                    isAnalyzing -> "Checking Photo..."
+                    else -> "Take Photo & Check Detail"
                 }
             )
         }

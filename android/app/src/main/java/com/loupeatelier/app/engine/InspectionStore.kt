@@ -95,34 +95,34 @@ object InspectionStore {
     ): String {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())
         return buildString {
-            appendLine("LOUPE ATELIER — MACRO PRE-SCREENING SCORECARD")
+            appendLine("LoupeAtelier — ITEM PRE-SCREENING RESULT")
             appendLine("Item: $itemName (${protocol.name})")
-            appendLine("Assessed: $timestamp")
+            appendLine("Checked: $timestamp")
             appendLine("------------------------------------------------")
-            appendLine("Authenticity Probability: ${scorecard.overallProbabilityScore}/100")
-            appendLine("Visual Confidence:        ${scorecard.overallConfidenceScore}/100")
-            appendLine("Verdict Band:             ${scorecard.verdictBand}")
+            appendLine("Visual Score:    ${scorecard.overallProbabilityScore}/100")
+            appendLine("Photo Clarity:   ${scorecard.overallConfidenceScore}/100")
+            appendLine("Summary Rating:  ${scorecard.verdictBand}")
             appendLine()
             appendLine(scorecard.executiveSummary)
             appendLine()
-            appendLine("MARKER BREAKDOWN:")
+            appendLine("PHOTO-BY-PHOTO BREAKDOWN:")
             markers.forEach { m ->
                 val a = assessments[m.id]
                 if (a != null) {
                     appendLine(
-                        "0${m.stepNumber}. ${m.title} (Wt ${(m.weight * 100).toInt()}%) -> " +
-                            "Signal ${a.authenticityScore}/100 | Conf ${a.confidenceScore}/100 | " +
-                            "Box ${a.framingScore}% / Light ${a.lightingScore}% / Focus ${a.sharpnessScore}%"
+                        "Photo 0${m.stepNumber}. ${m.title} -> " +
+                            "Visual ${a.authenticityScore}/100 | Clarity ${a.confidenceScore}/100 | " +
+                            "Framing ${a.framingScore}% / Light ${a.lightingScore}% / Focus ${a.sharpnessScore}%"
                     )
-                    a.confirmations.forEach { appendLine("   + $it") }
-                    a.anomalies.forEach { appendLine("   - $it") }
+                    a.confirmations.forEach { appendLine("   + Looks Good: $it") }
+                    a.anomalies.forEach { appendLine("   - Watch Out: $it") }
                     if (!a.qualityPassed && a.retakeAngleInstruction != null) {
-                        appendLine("   ! Retake: ${a.retakeAngleInstruction}")
+                        appendLine("   ! Retake Tip: ${a.retakeAngleInstruction}")
                     }
                 }
             }
             appendLine()
-            appendLine("HUMAN AUGMENTATION CHECKLIST:")
+            appendLine("HANDS-ON CHECKS:")
             scorecard.prioritizedHumanChecks.forEachIndexed { idx, c ->
                 appendLine("${idx + 1}. $c")
             }

@@ -69,6 +69,8 @@ import com.loupeatelier.app.engine.SavedInspectionEntry
 import com.loupeatelier.app.model.ClientOpticalMetrics
 import com.loupeatelier.app.model.FinalScorecard
 import com.loupeatelier.app.model.MarkerAssessment
+import com.loupeatelier.app.ui.ItemBlueprintLocator
+import com.loupeatelier.app.ui.LoupeAtelierWordmark
 import com.loupeatelier.app.ui.MacroCameraViewfinder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -361,11 +363,7 @@ fun LoupeAndroidApp() {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Loupe Atelier · Edge AI",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
+                    LoupeAtelierWordmark(fontSize = 19.sp, badgeSize = 34.dp)
                 },
                 actions = {
                     OutlinedButton(
@@ -390,9 +388,9 @@ fun LoupeAndroidApp() {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             if (showArchive) {
-                Text("Saved Offline Inspections", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text("Saved Item Checks", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 if (savedEntries.isEmpty()) {
-                    Text("No saved scorecards yet.", fontSize = 13.sp, color = Color(0xFF5C5850))
+                    Text("No saved results yet.", fontSize = 13.sp, color = Color(0xFF5C5850))
                 } else {
                     savedEntries.forEach { entry ->
                         Column(
@@ -405,7 +403,7 @@ fun LoupeAndroidApp() {
                         ) {
                             Text(entry.itemName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                             Text(
-                                "${entry.categoryName} · Prob ${entry.probabilityScore}/100 · Conf ${entry.confidenceScore}/100",
+                                "${entry.categoryName} · Visual ${entry.probabilityScore}/100 · Clarity ${entry.confidenceScore}/100",
                                 fontSize = 12.sp,
                                 color = Color(0xFF5C5850)
                             )
@@ -418,10 +416,10 @@ fun LoupeAndroidApp() {
                                     onClick = {
                                         val share = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
-                                            putExtra(Intent.EXTRA_SUBJECT, "Loupe Atelier Scorecard: ${entry.itemName}")
+                                            putExtra(Intent.EXTRA_SUBJECT, "LoupeAtelier Result: ${entry.itemName}")
                                             putExtra(Intent.EXTRA_TEXT, entry.reportText)
                                         }
-                                        context.startActivity(Intent.createChooser(share, "Share Scorecard"))
+                                        context.startActivity(Intent.createChooser(share, "Share Result"))
                                     }
                                 ) {
                                     Text("Share", fontSize = 12.sp)
@@ -452,7 +450,7 @@ fun LoupeAndroidApp() {
                     }
                 }
                 Text(
-                    "Demonstrate Loupe Atelier without a physical luxury item. Every sample feeds a real 960×720 macro image into the on-device computer-vision analyzer (no faked scores).",
+                    "Try LoupeAtelier without an item nearby. Each sample photo is checked live on your phone with zero faked scores.",
                     fontSize = 13.sp,
                     color = Color(0xFF5C5850)
                 )
@@ -467,7 +465,7 @@ fun LoupeAndroidApp() {
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB44332)),
                         onClick = { runFullDemoWalkthrough(preferDefect = true) }
                     ) {
-                        Text("4-Step Defect Demo", fontSize = 12.sp)
+                        Text("4-Photo Defect Demo", fontSize = 12.sp)
                     }
                     Button(
                         modifier = Modifier.weight(1f),
@@ -475,7 +473,7 @@ fun LoupeAndroidApp() {
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D6A4E)),
                         onClick = { runFullDemoWalkthrough(preferDefect = false) }
                     ) {
-                        Text("4-Step Clean Demo", fontSize = 12.sp)
+                        Text("4-Photo Clean Demo", fontSize = 12.sp)
                     }
                 }
 
@@ -502,7 +500,7 @@ fun LoupeAndroidApp() {
                     val badgeLabel = when (sample.kind) {
                         DemoSampleKind.DEFECT -> "DEFECT SAMPLE"
                         DemoSampleKind.BENCHMARK -> "CLEAN BENCHMARK"
-                        DemoSampleKind.OPTICAL_FAIL -> "RETAKE GATE DEMO"
+                        DemoSampleKind.OPTICAL_FAIL -> "RETAKE TEST"
                     }
 
                     Column(
@@ -537,7 +535,7 @@ fun LoupeAndroidApp() {
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Text(
-                                    text = if (matchesStep) "$badgeLabel · MATCHES STEP 0${currentMarker.stepNumber}" else badgeLabel,
+                                    text = if (matchesStep) "$badgeLabel · MATCHES PHOTO 0${currentMarker.stepNumber}" else badgeLabel,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = badgeColor
@@ -554,9 +552,9 @@ fun LoupeAndroidApp() {
                         ) {
                             Text(
                                 text = if (inSetup) {
-                                    "Inspect This Sample Now"
+                                    "Test This Sample Photo"
                                 } else {
-                                    "Test on Step 0${currentMarker.stepNumber} (${currentMarker.title.take(20)}…)"
+                                    "Use on Photo 0${currentMarker.stepNumber}"
                                 },
                                 fontSize = 12.sp
                             )
@@ -565,13 +563,13 @@ fun LoupeAndroidApp() {
                 }
             } else if (inSetup) {
                 Text(
-                    "Self-Contained On-Device Pre-Screening",
+                    "Check an Item in Minutes",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF181715)
                 )
                 Text(
-                    "100% private & offline. Includes 12 built-in luxury category protocols, 16 house reference archives, and an adaptive checklist generator for any unlisted item—zero servers or accounts.",
+                    "100% private & offline. Pick your item type or enter the brand below, follow the red-box guide for each close-up photo, and get an instant visual score.",
                     fontSize = 13.sp,
                     color = Color(0xFF5C5850)
                 )
@@ -586,7 +584,7 @@ fun LoupeAndroidApp() {
                 OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
-                    label = { Text("Brand & Model Name") },
+                    label = { Text("What are you checking? (Brand & Model)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -601,7 +599,7 @@ fun LoupeAndroidApp() {
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            "Offline Archive Match · ${matchedHouse.houseName}",
+                            "Brand Tip · ${matchedHouse.houseName}",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
                             color = Color(0xFF9A6B2F)
@@ -618,10 +616,10 @@ fun LoupeAndroidApp() {
                         val adaptive = ExpertKnowledgeBase.buildAdaptiveOfflineProtocol(itemName)
                         selectedProtocol = adaptive
                         resetSessionState()
-                        statusMessage = "Tailored ${adaptive.markers.size}-step offline protocol built for \"${adaptive.defaultItemName}\"."
+                        statusMessage = "Custom ${adaptive.markers.size}-photo checklist ready for \"${adaptive.defaultItemName}\"."
                     }
                 ) {
-                    Text("Auto-Match & Tailor Checklist for Typed Item", fontSize = 12.sp)
+                    Text("Build Custom Checklist for This Item", fontSize = 12.sp)
                 }
 
                 statusMessage?.let {
@@ -641,7 +639,7 @@ fun LoupeAndroidApp() {
                     ) {
                         Text(selectedProtocol.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF1D6A4E))
                         Text(
-                            "${selectedProtocol.markers.size} Tailored Markers · Ready 100% Offline",
+                            "${selectedProtocol.markers.size} Guided Photos · Ready Offline",
                             fontSize = 12.sp,
                             color = Color(0xFF5C5850)
                         )
@@ -668,7 +666,7 @@ fun LoupeAndroidApp() {
                     ) {
                         Text(proto.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                         Text(
-                            "${proto.markers.size} Sequential Markers · ${proto.defaultItemName}",
+                            "${proto.markers.size} Guided Photos · ${proto.defaultItemName}",
                             fontSize = 12.sp,
                             color = Color(0xFF5C5850)
                         )
@@ -686,15 +684,15 @@ fun LoupeAndroidApp() {
                         scorecard = null
                     }
                 ) {
-                    Text("Begin Macro Sequence")
+                    Text("Start Photo Check")
                 }
             } else if (scorecard != null) {
                 val final = scorecard!!
                 val cleanName = itemName.ifBlank { selectedProtocol.defaultItemName }
-                Text("Final Pre-Screening Scorecard", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text("Your Inspection Result", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 Text(cleanName, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Text(
-                    "Authenticity Probability: ${final.overallProbabilityScore}/100 · Visual Confidence: ${final.overallConfidenceScore}/100",
+                    "Visual Score: ${final.overallProbabilityScore}/100 · Photo Clarity: ${final.overallConfidenceScore}/100",
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(final.verdictBand, color = Color(0xFF9A6B2F), fontWeight = FontWeight.SemiBold)
@@ -735,7 +733,7 @@ fun LoupeAndroidApp() {
                             }
                         }
                     ) {
-                        Text(if (isSaved) "Saved Offline" else "Save Scorecard", fontSize = 12.sp)
+                        Text(if (isSaved) "Saved" else "Save Result", fontSize = 12.sp)
                     }
 
                     OutlinedButton(
@@ -749,13 +747,13 @@ fun LoupeAndroidApp() {
                             )
                             val share = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "Loupe Atelier Scorecard: $cleanName")
+                                putExtra(Intent.EXTRA_SUBJECT, "LoupeAtelier Result: $cleanName")
                                 putExtra(Intent.EXTRA_TEXT, report)
                             }
-                            context.startActivity(Intent.createChooser(share, "Export Scorecard"))
+                            context.startActivity(Intent.createChooser(share, "Share Result"))
                         }
                     ) {
-                        Text("Share Report", fontSize = 12.sp)
+                        Text("Share Summary", fontSize = 12.sp)
                     }
                 }
 
@@ -788,7 +786,7 @@ fun LoupeAndroidApp() {
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("0${marker.stepNumber}. ${marker.title}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Photo 0${marker.stepNumber}. ${marker.title}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 demoSampleUsed[marker.id]?.let { label ->
                                     Text(
                                         "DEMO SAMPLE · $label",
@@ -799,12 +797,12 @@ fun LoupeAndroidApp() {
                                 }
                                 if (a != null) {
                                     Text(
-                                        "Signal ${a.authenticityScore}/100 · Conf ${a.confidenceScore}/100",
+                                        "Visual ${a.authenticityScore}/100 · Clarity ${a.confidenceScore}/100",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        "Box ${a.framingScore}% · Light ${a.lightingScore}% · Focus ${a.sharpnessScore}%",
+                                        "Framing ${a.framingScore}% · Light ${a.lightingScore}% · Focus ${a.sharpnessScore}%",
                                         fontSize = 11.sp,
                                         color = Color(0xFF5C5850)
                                     )
@@ -813,11 +811,11 @@ fun LoupeAndroidApp() {
                         }
 
                         if (a != null) {
-                            a.confirmations.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFF1D6A4E)) }
-                            a.anomalies.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFFB44332)) }
+                            a.confirmations.forEach { Text("✓ $it", fontSize = 12.sp, color = Color(0xFF1D6A4E)) }
+                            a.anomalies.forEach { Text("! $it", fontSize = 12.sp, color = Color(0xFFB44332)) }
                             if (!a.qualityPassed && a.retakeAngleInstruction != null) {
                                 Text(
-                                    "Retake Guidance: ${a.retakeAngleInstruction}",
+                                    "Retake Tip: ${a.retakeAngleInstruction}",
                                     color = Color(0xFFB44332),
                                     fontSize = 12.sp
                                 )
@@ -828,13 +826,13 @@ fun LoupeAndroidApp() {
                                     activeStepIndex = idx
                                 }
                             ) {
-                                Text("Retake This Marker", fontSize = 12.sp)
+                                Text("Retake This Photo", fontSize = 12.sp)
                             }
                         }
                     }
                 }
 
-                Text("Human Augmentation Checks", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text("Things to Check With Your Own Hands", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 final.prioritizedHumanChecks.forEachIndexed { i, check ->
                     Text("0${i + 1}. $check", fontSize = 13.sp)
                 }
@@ -848,16 +846,19 @@ fun LoupeAndroidApp() {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF181715))
                 ) {
-                    Text("Start New Inspection")
+                    Text("Check Another Item")
                 }
             } else {
                 Text(
-                    "Step 0${currentMarker.stepNumber} of 0${markers.size} · ${currentMarker.title}",
+                    "Photo 0${currentMarker.stepNumber} of 0${markers.size} · ${currentMarker.title}",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(currentMarker.lightingRequirement, fontSize = 13.sp, color = Color(0xFF5C5850))
-                Text(currentMarker.angleAndDistance, fontSize = 13.sp, color = Color(0xFF5C5850))
+                ItemBlueprintLocator(
+                    protocolId = selectedProtocol.id,
+                    marker = currentMarker
+                )
+                Text(currentMarker.lightingRequirement, fontSize = 12.sp, color = Color(0xFF5C5850))
 
                 if (!hasCameraPermission) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -939,12 +940,12 @@ fun LoupeAndroidApp() {
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "Signal: ${assess.authenticityScore}/100 · Conf: ${assess.confidenceScore}/100",
+                                    "Visual Score: ${assess.authenticityScore}/100 · Clarity: ${assess.confidenceScore}/100",
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    "Box ${assess.framingScore}% · Light ${assess.lightingScore}% · Focus ${assess.sharpnessScore}%",
+                                    "Framing ${assess.framingScore}% · Light ${assess.lightingScore}% · Focus ${assess.sharpnessScore}%",
                                     fontSize = 12.sp,
                                     color = Color(0xFF5C5850)
                                 )
@@ -953,14 +954,14 @@ fun LoupeAndroidApp() {
 
                         if (!assess.qualityPassed) {
                             Text(
-                                "Retake Recommended: ${assess.retakeAngleInstruction ?: assess.qualityPenaltyReason}",
+                                "Retake Needed: ${assess.retakeAngleInstruction ?: assess.qualityPenaltyReason}",
                                 color = Color(0xFFB44332),
                                 fontSize = 13.sp
                             )
                         }
-                        assess.confirmations.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFF1D6A4E)) }
-                        assess.anomalies.forEach { Text("· $it", fontSize = 12.sp, color = Color(0xFFB44332)) }
-                        Text("Human Check: ${assess.humanJudgementNote}", fontSize = 12.sp, color = Color(0xFF5C5850))
+                        assess.confirmations.forEach { Text("✓ $it", fontSize = 12.sp, color = Color(0xFF1D6A4E)) }
+                        assess.anomalies.forEach { Text("! $it", fontSize = 12.sp, color = Color(0xFFB44332)) }
+                        Text("Hands-On Check: ${assess.humanJudgementNote}", fontSize = 12.sp, color = Color(0xFF5C5850))
                     }
                 }
 
@@ -975,7 +976,7 @@ fun LoupeAndroidApp() {
                             if (activeStepIndex > 0) activeStepIndex-- else inSetup = true
                         }
                     ) {
-                        Text(if (activeStepIndex > 0) "Previous" else "Categories")
+                        Text(if (activeStepIndex > 0) "Back" else "Categories")
                     }
                     if (activeStepIndex < markers.lastIndex) {
                         Button(
@@ -983,7 +984,7 @@ fun LoupeAndroidApp() {
                             onClick = { activeStepIndex++ },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF181715))
                         ) {
-                            Text("Next Marker")
+                            Text("Next Photo")
                         }
                     } else {
                         Button(
@@ -997,7 +998,7 @@ fun LoupeAndroidApp() {
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D6A4E))
                         ) {
-                            Text("Issue Final Scorecard")
+                            Text("See Final Result")
                         }
                     }
                 }
